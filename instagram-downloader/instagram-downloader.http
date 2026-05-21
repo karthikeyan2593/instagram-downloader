@@ -1,0 +1,6 @@
+@instagram_downloader_HostAddress = http://localhost:5150
+
+GET {{instagram_downloader_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
