@@ -25,8 +25,7 @@ public class ReelService
         var startInfo = new ProcessStartInfo
         {
             FileName = "yt-dlp",
-            Arguments =
-                $"-f mp4 --get-url \"{reelUrl}\"",
+            Arguments = $"--cookies cookies.txt -f mp4 --get-url \"{reelUrl}\"",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
