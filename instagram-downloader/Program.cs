@@ -35,4 +35,6 @@ app.UseCors("AllowAngular");
 app.UseAuthorization();
 app.MapControllers();
 
+app.Urls.Add("http://0.0.0.0:3000");
+
 app.Run();
