@@ -2,90 +2,63 @@
 using instagram_downloader.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace instagram_downloader.Controllers;
-
-[ApiController]
-[Route("api/reels")]
-public class ReelController : ControllerBase
+namespace instagram_downloader.Controllers
 {
-    private readonly ReelService _reelService;
-
-    public ReelController(ReelService reelService)
+    [ApiController]
+    [Route("api/reels")]
+    public class ReelController : ControllerBase
     {
-        _reelService = reelService;
-    }
+        private readonly ReelService _reelService;
 
-    [HttpGet("test")]
-    public IActionResult Test()
-    {
-        return Ok(new
+        public ReelController(ReelService reelService)
         {
-            success = true,
-            message = "API working"
-        });
-    }
-
-    [HttpPost("download")]
-    public async Task<IActionResult> Download([FromBody] ReelRequest request)
-    {
-        try
-        {
-            var result = await _reelService.DownloadReelAsync(request.Url);
-
-            return Ok(new
-            {
-                success = true,
-                videoUrl = result.VideoUrl
-            });
+            _reelService = reelService;
         }
-        catch (Exception ex)
-        {
-            return BadRequest(new
-            {
-                success = false,
-                message = ex.Message
-            });
-        }
-    }
 
-    [HttpPost("download-and-stream")]
-    public async Task<IActionResult> DownloadAndStream([FromBody] ReelRequest request)
-    {
-        try
+        [HttpPost("download")]
+        public async Task<IActionResult> Download([FromBody] ReelRequest request)
         {
-            var result = await _reelService.DownloadReelAsync(request.Url);
-
-            if (result == null || string.IsNullOrEmpty(result.VideoUrl))
+            try
             {
-                return BadRequest(new
+                var videoUrl = await _reelService.DownloadReelAsync(request.Url);
+
+                return Ok(new
                 {
-                    success = false,
-                    message = "Video URL not found"
+                    success = true,
+                    videoUrl = videoUrl
                 });
             }
-
-            using var client = new HttpClient();
-
-            client.DefaultRequestHeaders.Add(
-                "User-Agent",
-                "Mozilla/5.0"
-            );
-
-            var bytes = await client.GetByteArrayAsync(result.VideoUrl);
-
-            return File(
-                bytes,
-                "video/mp4",
-                "instagram-reel.mp4"
-            );
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new
+            catch (Exception ex)
             {
-                success = false,
-                message = ex.Message
-            });
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpPost("download-and-stream")]
+        public async Task<IActionResult> DownloadAndStream([FromBody] ReelRequest request)
+        {
+            try
+            {
+                var videoUrl = await _reelService.DownloadReelAsync(request.Url);
+
+                using var client = new HttpClient();
+
+                var bytes = await client.GetByteArrayAsync(videoUrl);
+
+                return File(bytes, "video/mp4", "instagram-reel.mp4");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
     }
 }

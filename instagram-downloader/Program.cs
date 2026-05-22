@@ -12,6 +12,9 @@ builder.Services.AddHttpClient();
 // ✅ Once mattum!
 builder.Services.AddScoped<ReelService>();
 
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<ReelService>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>

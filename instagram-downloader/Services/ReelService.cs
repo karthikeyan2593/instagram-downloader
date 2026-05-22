@@ -1,56 +1,49 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
+﻿using System.Text.Json;
 
-namespace instagram_downloader.Services;
-
-public class ReelService
+namespace instagram_downloader.Services
 {
-    public async Task<dynamic> DownloadReelAsync(string reelUrl)
+    public class ReelService
     {
-        var tempFolder = Path.Combine(
-            Directory.GetCurrentDirectory(),
-            "downloads"
-        );
+        private readonly HttpClient _httpClient;
 
-        if (!Directory.Exists(tempFolder))
+        public ReelService(HttpClient httpClient)
         {
-            Directory.CreateDirectory(tempFolder);
+            _httpClient = httpClient;
         }
 
-        var outputTemplate = Path.Combine(
-            tempFolder,
-            "%(id)s.%(ext)s"
-        );
-
-        var startInfo = new ProcessStartInfo
+        public async Task<string> DownloadReelAsync(string reelUrl)
         {
-            FileName = "yt-dlp",
-            Arguments = $"--cookies cookies.txt -f mp4 --get-url \"{reelUrl}\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+            var apiUrl =
+                $"https://fastvideosave.net/wp-json/aio-dl/video-data/?url={Uri.EscapeDataString(reelUrl)}";
 
-        using var process = new Process();
-        process.StartInfo = startInfo;
+            var response = await _httpClient.GetAsync(apiUrl);
 
-        process.Start();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception("Failed to fetch reel.");
+            }
 
-        string output = await process.StandardOutput.ReadToEndAsync();
-        string error = await process.StandardError.ReadToEndAsync();
+            var json = await response.Content.ReadAsStringAsync();
 
-        await process.WaitForExitAsync();
+            using JsonDocument doc = JsonDocument.Parse(json);
 
-        if (process.ExitCode != 0)
-        {
-            throw new Exception(error);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("medias", out var medias))
+            {
+                throw new Exception("Video not found.");
+            }
+
+            var firstVideo = medias[0];
+
+            var videoUrl = firstVideo.GetProperty("url").GetString();
+
+            if (string.IsNullOrEmpty(videoUrl))
+            {
+                throw new Exception("Video URL empty.");
+            }
+
+            return videoUrl;
         }
-
-        return new
-        {
-            Success = true,
-            VideoUrl = output.Trim()
-        };
     }
 }
